@@ -22,5 +22,5 @@ func main() {
 	case 1:
 		unsei = "凶"
 	}
-	println(unsei + "!!!")
+	print(unsei + "!!!")
 }
