@@ -13,13 +13,8 @@ import (
 func main() {
 	e := echo.New()
 
-	// SQLite接続
-	db, err := sql.Open("sqlite3", "./db/practice.sqlite")
-	if err != nil {
-		log.Fatal(err)
-	}
+	db := ConnectDb()
 	defer db.Close()
-
 	// 初期テーブルを作成
 	createTableQuery := `
 	CREATE TABLE IF NOT EXISTS users (
@@ -33,30 +28,10 @@ func main() {
 	//初期レコードの投入
 	initUserTable(db)
 
-	type User struct {
-		ID       int    `json:"id"`
-		Name     string `json:"name"`
-		Password string `json:"password"`
-	}
-
 	//user list
-	e.GET("/users", func(c echo.Context) error {
-		rows, err := db.Query("SELECT * FROM users;")
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch users"})
-		}
-		defer rows.Close()
-
-		var userList []User
-		for rows.Next() {
-			var user User
-			if err := rows.Scan(&user.ID, &user.Name, &user.Password); err != nil {
-				return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch users"})
-			}
-			userList = append(userList, user)
-		}
-		return c.JSONPretty(http.StatusOK, userList, "	")
-	})
+	e.GET("/users", GetUsers())
+	//create user
+	e.POST("/users", CreateUser())
 
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, Echo!")
@@ -69,6 +44,15 @@ func main() {
 
 	//start in "http://localhost:1323"
 	e.Logger.Fatal(e.Start(":1323"))
+}
+
+func ConnectDb() *sql.DB {
+	// SQLite接続
+	db, err := sql.Open("sqlite3", "./db/practice.sqlite")
+	if err != nil {
+		log.Fatal(err)
+	}
+	return db
 }
 
 // 初期データを挿入する関数
