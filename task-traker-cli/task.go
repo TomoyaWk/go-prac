@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const JSON_PATH = "./json/task.json"
+
 // task　status
 type Status int
 
@@ -67,6 +69,7 @@ type Task struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
+// list
 func GetTasks() {
 	file, err := os.ReadFile("./json/task.json")
 	if err != nil {
@@ -85,4 +88,37 @@ func GetTasks() {
 			tasks[i].CreatedAt.Format(time.RFC3339),
 			tasks[i].UpdatedAt.Format(time.RFC3339))
 	}
+}
+
+func createNewTask(description string) (Task, error) {
+	file, err := os.ReadFile(JSON_PATH)
+	if err != nil {
+		panic("file cannot read.")
+	}
+	tasks := []Task{}
+	if err := json.Unmarshal([]byte(file), &tasks); err != nil {
+		panic(err)
+	}
+
+	now := time.Now()
+	var newTask = Task{
+		Id:          len(tasks) + 1,
+		Description: description,
+		Status:      Todo.toString(),
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+
+	tasks = append(tasks, newTask)
+	if err = saveJson(tasks); err != nil {
+		return newTask, err
+	}
+	return newTask, nil
+}
+
+func saveJson(taskData []Task) error {
+	file, _ := os.Create(JSON_PATH)
+	defer file.Close()
+	err := json.NewEncoder(file).Encode(taskData)
+	return err
 }
