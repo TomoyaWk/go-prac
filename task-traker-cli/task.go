@@ -70,19 +70,31 @@ type Task struct {
 }
 
 // list
-func GetTasks() {
+func GetTasks(query string) {
 	tasks, err := readJson()
 	if err != nil {
 		fmt.Printf("cannot read tasks: %q", err)
 	}
+	var isSearch = query != ""
+	var filter Status
+	if isSearch {
+		s, err := ParseStatus(query)
+		if err != nil {
+			fmt.Printf("invalid Status query: %s you can filter Todo/Done/InProgress", query)
+			return
+		}
+		filter = s
+	}
 
 	for i := 0; i < len(tasks); i++ {
-		fmt.Printf("ID: %d | Desc:%s | Status: %s | CreatedAt: %s | UpdatedAt: %s |\n",
-			tasks[i].Id,
-			tasks[i].Description,
-			tasks[i].Status,
-			tasks[i].CreatedAt.Format(time.RFC3339),
-			tasks[i].UpdatedAt.Format(time.RFC3339))
+		if !isSearch || tasks[i].Status == filter.toString() {
+			fmt.Printf("ID: %d | Desc:%s | Status: %s | CreatedAt: %s | UpdatedAt: %s |\n",
+				tasks[i].Id,
+				tasks[i].Description,
+				tasks[i].Status,
+				tasks[i].CreatedAt.Format(time.RFC3339),
+				tasks[i].UpdatedAt.Format(time.RFC3339))
+		}
 	}
 }
 
@@ -109,8 +121,8 @@ func createNewTask(description string) (Task, error) {
 	return newTask, nil
 }
 
-// update
-func UpdateTask(id int, description string) (Task, error) {
+// update description
+func UpdateTaskDesc(id int, description string) (Task, error) {
 	read, err := readJson()
 	if err != nil {
 		fmt.Printf("cannot read tasks: %q", err)
@@ -137,6 +149,71 @@ func UpdateTask(id int, description string) (Task, error) {
 	target = read[targetIndex]
 
 	if err = saveJson(read); err != nil {
+		return target, err
+	}
+	return target, nil
+}
+
+// update Status
+func UpdateTaskStatus(id int, status Status) (Task, error) {
+	read, err := readJson()
+	if err != nil {
+		fmt.Printf("cannot read tasks: %q", err)
+		return Task{}, err
+	}
+	//filter
+	var target Task
+	var targetIndex int
+	for i := 0; i < len(read); i++ {
+		if read[i].Id == id {
+			target = read[i]
+			targetIndex = i
+		}
+	}
+	if (target == Task{}) {
+		//not found
+		err := fmt.Errorf("task not found (ID: %d)", id)
+		return Task{}, err
+	}
+	//set
+	timeStamp := time.Now()
+	read[targetIndex].Status = status.toString()
+	read[targetIndex].UpdatedAt = timeStamp
+	target = read[targetIndex]
+
+	if err = saveJson(read); err != nil {
+		return target, err
+	}
+	return target, nil
+}
+
+// delete
+func DeleteTask(id int) (Task, error) {
+	read, err := readJson()
+	if err != nil {
+		fmt.Printf("cannot read tasks: %q", err)
+		return Task{}, err
+	}
+	//filter
+	var target Task
+	var targetIndex int
+	for i := 0; i < len(read); i++ {
+		if read[i].Id == id {
+			target = read[i]
+			targetIndex = i
+		}
+	}
+	if (target == Task{}) {
+		//not found
+		err := fmt.Errorf("task not found (ID: %d)", id)
+		return Task{}, err
+	}
+	//delete実行
+	//対象までのスライス＋対象以降
+	tasks := append(read[:targetIndex], read[targetIndex+1:]...)
+	target = read[targetIndex]
+
+	if err = saveJson(tasks); err != nil {
 		return target, err
 	}
 	return target, nil
