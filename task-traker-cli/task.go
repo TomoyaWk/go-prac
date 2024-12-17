@@ -64,20 +64,16 @@ func ParseStatus(s string) (Status, error) {
 type Task struct {
 	Id          int       `json:"id"`
 	Description string    `json:"description"`
-	Status      string    `json:status`
+	Status      string    `json:status.ParseStatus()`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // list
 func GetTasks() {
-	file, err := os.ReadFile("./json/task.json")
+	tasks, err := readJson()
 	if err != nil {
-		panic("file cannot read.")
-	}
-	tasks := []Task{}
-	if err := json.Unmarshal([]byte(file), &tasks); err != nil {
-		panic(err)
+		fmt.Printf("cannot read tasks: %q", err)
 	}
 
 	for i := 0; i < len(tasks); i++ {
@@ -90,32 +86,76 @@ func GetTasks() {
 	}
 }
 
+// create
 func createNewTask(description string) (Task, error) {
-	file, err := os.ReadFile(JSON_PATH)
+	read, err := readJson()
 	if err != nil {
-		panic("file cannot read.")
+		fmt.Printf("cannot read tasks: %q", err)
+		return Task{}, err
 	}
-	tasks := []Task{}
-	if err := json.Unmarshal([]byte(file), &tasks); err != nil {
-		panic(err)
-	}
-
 	now := time.Now()
 	var newTask = Task{
-		Id:          len(tasks) + 1,
+		Id:          len(read) + 1,
 		Description: description,
 		Status:      Todo.toString(),
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
 
-	tasks = append(tasks, newTask)
+	tasks := append(read, newTask)
 	if err = saveJson(tasks); err != nil {
 		return newTask, err
 	}
 	return newTask, nil
 }
 
+// update
+func UpdateTask(id int, description string) (Task, error) {
+	read, err := readJson()
+	if err != nil {
+		fmt.Printf("cannot read tasks: %q", err)
+		return Task{}, err
+	}
+	//filter
+	var target Task
+	var targetIndex int
+	for i := 0; i < len(read); i++ {
+		if read[i].Id == id {
+			target = read[i]
+			targetIndex = i
+		}
+	}
+	if (target == Task{}) {
+		//not found
+		err := fmt.Errorf("task not found (ID: %d)", id)
+		return Task{}, err
+	}
+	//set
+	timeStamp := time.Now()
+	read[targetIndex].Description = description
+	read[targetIndex].UpdatedAt = timeStamp
+	target = read[targetIndex]
+
+	if err = saveJson(read); err != nil {
+		return target, err
+	}
+	return target, nil
+}
+
+// jsonファイル読み込み
+func readJson() ([]Task, error) {
+	file, err := os.ReadFile(JSON_PATH)
+	if err != nil {
+		panic("file cannot read.")
+	}
+	tasks := []Task{}
+	if err := json.Unmarshal([]byte(file), &tasks); err != nil {
+		return tasks, err
+	}
+	return tasks, nil
+}
+
+// jsonファイル書き込み
 func saveJson(taskData []Task) error {
 	file, _ := os.Create(JSON_PATH)
 	defer file.Close()
