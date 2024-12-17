@@ -3,3 +3,15 @@ Cliの練習、[roadmapのプロジェクト](https://roadmap.sh/projects/task-t
 
 - go build -o dev 
 - ./dev <command>
+
+- go install
+- task-cli <command>
+
+## Command
+
+- list <status>
+- add <description>
+- update <id>
+- delete <id>
+- mark-done <id>
+- mark-in-progress <id>
