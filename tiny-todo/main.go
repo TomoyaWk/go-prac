@@ -8,24 +8,30 @@ import (
 
 var todoList []string
 
-// template
+// list template
 func handleTodo(w http.ResponseWriter, r *http.Request) {
 	t, _ := template.ParseFiles("templates/todo.html")
 	t.Execute(w, todoList)
 }
 
+// add
+func handleAddTodo(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	todo := r.Form.Get("todo")
+	todoList = append(todoList, todo)
+	http.Redirect(w, r, "/todo", 303)
+}
+
 func main() {
-	todoList = append(todoList, "顔洗う", "朝食食べる", "歯を磨く")
-	//static
 	http.Handle("/static/",
 		http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-	//todo
+
 	http.HandleFunc("/todo/", handleTodo)
 
-	//start & error handle
+	http.HandleFunc("/add/", handleAddTodo)
+
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
-		log.Fatal("failed to Start:", err)
+		log.Fatal("failed to start : ", err)
 	}
-
 }
