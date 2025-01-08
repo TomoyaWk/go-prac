@@ -45,6 +45,13 @@ func main() {
 					//test
 					fmt.Println("description:", paramDesc)
 					fmt.Println("amount:", paramAmount)
+
+					created, err := CreateExpense(paramDesc, paramAmount)
+					if err != nil {
+						fmt.Printf("failed!: %v", err)
+						return nil
+					}
+					fmt.Printf("Expense added successfully (ID: %d)", created.ID)
 					return nil
 				},
 			},

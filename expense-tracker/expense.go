@@ -41,6 +41,26 @@ func GetExpenses() {
 	table.Print()
 }
 
+// Create Expense
+func CreateExpense(description string, amount int) (Expense, error) {
+	read, err := ParseCSV()
+	if err != nil {
+		log.Fatal(err)
+		return Expense{}, err
+	}
+	var created = Expense{
+		ID:          len(read) + 1,
+		Date:        time.Now(),
+		Description: description,
+		Amount:      amount,
+	}
+	expenses := append(read, created)
+	if err := SaveCSV(expenses); err != nil {
+		return Expense{}, err
+	}
+	return created, nil
+}
+
 // csvファイル読み込みでexpensesを返す
 func ParseCSV() ([]Expense, error) {
 	csvFile, err := os.Open(CSV_PATH)
@@ -86,4 +106,33 @@ func ParseCSV() ([]Expense, error) {
 		})
 	}
 	return expenses, nil
+}
+
+// CSV書き込み
+func SaveCSV(expenses []Expense) error {
+	csvFile, err := os.Create(CSV_PATH)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	writer := csv.NewWriter(
+		transform.NewWriter(csvFile, japanese.ShiftJIS.NewEncoder()),
+	)
+	var headerRow = []string{"ID", "Date", "Amount", "Description"}
+	writer.Write(headerRow)
+	for _, e := range expenses {
+		err := writer.Write([]string{
+			strconv.Itoa(e.ID),
+			e.Date.Format("2006-01-02"),
+			strconv.Itoa(e.Amount),
+			e.Description,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	writer.Flush()
+	defer csvFile.Close()
+	return nil
 }
